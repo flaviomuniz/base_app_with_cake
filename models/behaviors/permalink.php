@@ -1,22 +1,24 @@
 <?php
-
 class PermalinkBehavior extends ModelBehavior
 {
 	var $options = array();
 	var $model;
-	
+
 	function setup(&$model, $options = array())
 	{
 		$this->options = am(array(
-			"field" => "name", 
-			"separator" => "-" 
+			"field" => "name",
+			"separator" => "-"
 		), $options);
 	}
 
 	function beforeSave(&$model)
 	{
 		$return = parent::beforeSave($model);
-		if (!$model->hasField($this->options["field"]) || !isSet($model->data[$model->name][$this->options["field"]]))
+		if (
+			(!$model->hasField($this->options["field"]) || !isSet($model->data[$model->name][$this->options["field"]])) ||
+			($model->hasField("protected") && $model->field("protected", array("id" => $model->id)))
+		)
 		{
 			return $return;
 		}
@@ -29,6 +31,7 @@ class PermalinkBehavior extends ModelBehavior
 		$value = $model->data[$model->name][$this->options["field"]];
 		$value = low($value);
 		$value = preg_replace('/[^a-z0-9_ -]/i', "", $value);
+		$value = str_replace('  ', " ", $value);
 		$value = preg_replace('/[_ ]/i', $this->options["separator"], $value);
 
 		if ($level > 0)
@@ -43,7 +46,7 @@ class PermalinkBehavior extends ModelBehavior
 			$conditions = am(array($model->alias . ".id <>" => $model->id), $conditions);
 		}
 		$count = $model->find("count", array("conditions" => $conditions));
-		
+
 		if($count > 0)
 		{
 			$this->permalink($model, ++$level);
@@ -53,6 +56,5 @@ class PermalinkBehavior extends ModelBehavior
 			$model->data[$model->name]["permalink"] = $value;
 		}
 	}
-
 }
 ?>
